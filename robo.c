@@ -1,5 +1,6 @@
-#include <c64/vic.h>
+#include <c64/joystick.h>
 #include <c64/sprites.h>
+#include <c64/vic.h>
 #include <string.h>
 #include "sprite_data.h"
 #define FRAME_DELAY 16 		// Animation frame delay
@@ -24,20 +25,21 @@ typedef struct {
     char sprite_number;                   // Sprite hardware index (0-7)
     int x;                                // X pos
     int y;                                // Y pos
-} sprite_anim;
+} sprite_object;
 
-sprite_anim shiny_anim;
-sprite_anim rusty_anim;
+sprite_object shiny;
+sprite_object rusty;
 
-void update_sprite(sprite_anim *anim) {
-    if (anim->delay_counter == 0) {
-        memcpy(anim->sprite_mem, anim->frames[anim->current_frame], 64);
-        anim->current_frame++;
-        if (anim->current_frame >= anim->num_frames) anim->current_frame = 0;
+void update_sprite(sprite_object *spr) {
+    if (spr->delay_counter == 0) {
+        memcpy(spr->sprite_mem, spr->frames[spr->current_frame], 64);
+        spr->current_frame++;
+        if (spr->current_frame >= spr->num_frames) spr->current_frame = 0;
     }
 
-    anim->delay_counter++;
-    if (anim->delay_counter >= anim->frame_delay) anim->delay_counter = 0;
+    spr->delay_counter++;
+    if (spr->delay_counter >= spr->frame_delay) spr->delay_counter = 0;
+    spr_move(spr->sprite_number, spr->x, spr->y);
 }
 
 int init(void)
@@ -48,33 +50,29 @@ int init(void)
 
 	spr_init(Screen);
 
-	// Initiate our heroes
-//	spr_set(0, true, 300, 228, (unsigned)Sprite0/ 64, 0, true, false, false);
-//	spr_set(1, true, 20, 228, (unsigned)Sprite1/ 64, 1, true, false, false);
+	shiny.frames = robo_frames_left;
+	shiny.num_frames = 4;
+	shiny.current_frame = 0;
+	shiny.delay_counter = 0;
+	shiny.frame_delay = 4;
+	shiny.sprite_mem = Sprite0;
+        shiny.sprite_number = 0;
+        shiny.x = 300;
+        shiny.y = 229;
 
-	shiny_anim.frames = robo_frames_left;
-	shiny_anim.num_frames = 4;
-	shiny_anim.current_frame = 0;
-	shiny_anim.delay_counter = 0;
-	shiny_anim.frame_delay = 4;
-	shiny_anim.sprite_mem = Sprite0;
-        shiny_anim.sprite_number = 0;
-        shiny_anim.x = 300;
-        shiny_anim.y = 229;
-
-	rusty_anim.frames = robo_frames_right;
-	rusty_anim.num_frames = 4;
-	rusty_anim.current_frame = 1;
-	rusty_anim.delay_counter = 0;
-	rusty_anim.frame_delay = 4;
-	rusty_anim.sprite_mem = Sprite1;
-        rusty_anim.sprite_number = 1;
-        rusty_anim.x = 20;
-        rusty_anim.y = 229;
+	rusty.frames = robo_frames_right;
+	rusty.num_frames = 4;
+	rusty.current_frame = 1;
+	rusty.delay_counter = 0;
+	rusty.frame_delay = 4;
+	rusty.sprite_mem = Sprite1;
+        rusty.sprite_number = 1;
+        rusty.x = 20;
+        rusty.y = 229;
 
 	// Initiate our heroes
-	spr_set(0, true, shiny_anim.x, 228, (unsigned)Sprite0/ 64, 0, true, false, false);
-	spr_set(1, true, rusty_anim.x, 228, (unsigned)Sprite1/ 64, 1, true, false, false);
+	spr_set(0, true, shiny.x, 228, (unsigned)Sprite0/ 64, 0, true, false, false);
+	spr_set(1, true, rusty.x, 228, (unsigned)Sprite1/ 64, 1, true, false, false);
 
 	vic.spr_mcolor0 = VCOL_WHITE;
 	vic.spr_mcolor1 = VCOL_BLACK;
@@ -89,19 +87,20 @@ int main(void)
 	init();
 
 	int delay_counter = 0;
+	int sx = 0;
 
 	while (true) {
-		update_sprite(&shiny_anim);
-		update_sprite(&rusty_anim);
+		joy_poll(0);
+		sx += joyx[0];
+		shiny.x + sx;
+		rusty.x++;
+
+		update_sprite(&shiny);
+		update_sprite(&rusty);
 
 		vic_waitFrame();
 		delay_counter++;
 		if (delay_counter >= FRAME_DELAY) delay_counter = 0;
-		
-		shiny_anim.x--;
-		rusty_anim.x++;
-		spr_move(0, shiny_anim.x, shiny_anim.y);
-		spr_move(1, rusty_anim.x, rusty_anim.y);
 	}
 
 	return 0;
