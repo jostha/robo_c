@@ -15,6 +15,7 @@ char * const Sprite1 = (char *)(0x3600 + 64); //Ru5-t13
 const char * robo_frames_right[] = { sprite_robo5, sprite_robo6, sprite_robo7, sprite_robo6 };
 const char * robo_frames_left[] = { sprite_robo8, sprite_robo9, sprite_robo10, sprite_robo9 };
 
+// Add an element of objects to the sprites to make management easier
 typedef struct {
     const unsigned char * const *frames;  // Pointer to an array of sprite frame pointers
     int num_frames;                       // Total number of frames
@@ -27,9 +28,27 @@ typedef struct {
     int y;                                // Y pos
 } sprite_object;
 
+// Make it easier to define new sprite objects
+sprite_object init_sprite(const unsigned char * const *frames, int num_frames,
+                          unsigned char *sprite_mem, int sprite_number, int current_frame, int x, int y) {
+    sprite_object s;
+    s.frames = frames;
+    s.num_frames = num_frames;
+    s.current_frame = current_frame;
+    s.delay_counter = 0;
+    s.frame_delay = 4; // Or make this a parameter!
+    s.sprite_mem = sprite_mem;
+    s.sprite_number = sprite_number;
+    s.x = x;
+    s.y = y;
+    return s;
+}
+
+// Global defs
 sprite_object shiny;
 sprite_object rusty;
 
+// Animate and update on screen
 void update_sprite(sprite_object *spr) {
     if (spr->delay_counter == 0) {
         memcpy(spr->sprite_mem, spr->frames[spr->current_frame], 64);
@@ -42,6 +61,12 @@ void update_sprite(sprite_object *spr) {
     spr_move(spr->sprite_number, spr->x, spr->y);
 }
 
+// Read joysticks and alter x accordingly
+void update_sprite_joystick_input(sprite_object* s, int joystick_id) {
+    joy_poll(joystick_id);
+    s->x += joyx[joystick_id];
+}
+	
 int init(void)
 {
 	vic.color_border = VCOL_BLACK;
@@ -50,25 +75,8 @@ int init(void)
 
 	spr_init(Screen);
 
-	shiny.frames = robo_frames_left;
-	shiny.num_frames = 4;
-	shiny.current_frame = 0;
-	shiny.delay_counter = 0;
-	shiny.frame_delay = 4;
-	shiny.sprite_mem = Sprite0;
-        shiny.sprite_number = 0;
-        shiny.x = 300;
-        shiny.y = 229;
-
-	rusty.frames = robo_frames_right;
-	rusty.num_frames = 4;
-	rusty.current_frame = 1;
-	rusty.delay_counter = 0;
-	rusty.frame_delay = 4;
-	rusty.sprite_mem = Sprite1;
-        rusty.sprite_number = 1;
-        rusty.x = 20;
-        rusty.y = 229;
+	shiny = init_sprite(robo_frames_left, 4, Sprite0, 0, 0, 300, 229);
+	rusty = init_sprite(robo_frames_right, 4, Sprite1, 1, 1, 20, 229);
 
 	// Initiate our heroes
 	spr_set(0, true, shiny.x, 228, (unsigned)Sprite0/ 64, 0, true, false, false);
@@ -87,13 +95,11 @@ int main(void)
 	init();
 
 	int delay_counter = 0;
-	int sx = 0;
 
+	// This will be main game loop I think
 	while (true) {
-		joy_poll(0);
-		sx += joyx[0];
-		shiny.x + sx;
-		rusty.x++;
+		update_sprite_joystick_input(&shiny, 0);
+		update_sprite_joystick_input(&rusty, 1);
 
 		update_sprite(&shiny);
 		update_sprite(&rusty);
