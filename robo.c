@@ -2,6 +2,7 @@
 #include <c64/sprites.h>
 #include <c64/vic.h>
 #include <string.h>
+#include "sprite.h"
 #include "sprite_data.h"
 #define FRAME_DELAY 16 		// Animation frame delay
 		       
@@ -12,41 +13,20 @@ char * const Screen = (char *)0x0400;
 char * const Sprite0 = (char *)0x3600;        //5hin-3y
 char * const Sprite1 = (char *)(0x3600 + 64); //Ru5-t13
 
-const char * robo_frames_right[] = { sprite_robo5, sprite_robo6, sprite_robo7, sprite_robo6 };
-const char * robo_frames_left[] = { sprite_robo8, sprite_robo9, sprite_robo10, sprite_robo9 };
-
-// Add an element of objects to the sprites to make management easier
-typedef struct {
-    const unsigned char * const *frames;  // Pointer to an array of sprite frame pointers
-    int num_frames;                       // Total number of frames
-    int current_frame;                    // Current frame index
-    int delay_counter;                    // Frame delay counter
-    int frame_delay;                      // Frames to wait before switching
-    unsigned char *sprite_mem;            // Pointer to sprite memory (e.g. Sprite0 or Sprite1)
-    char sprite_number;                   // Sprite hardware index (0-7)
-    int x;                                // X pos
-    int y;                                // Y pos
-} sprite_object;
-
-// Make it easier to define new sprite objects
-sprite_object init_sprite(const unsigned char * const *frames, int num_frames,
-                          unsigned char *sprite_mem, int sprite_number, int current_frame, int x, int y) {
-    sprite_object s;
-    s.frames = frames;
-    s.num_frames = num_frames;
-    s.current_frame = current_frame;
-    s.delay_counter = 0;
-    s.frame_delay = 4; // Or make this a parameter!
-    s.sprite_mem = sprite_mem;
-    s.sprite_number = sprite_number;
-    s.x = x;
-    s.y = y;
-    return s;
-}
+const char * robo_frames_right[] = { sprite_robo5, sprite_robo6, sprite_robo7,  sprite_robo6 };
+const char * robo_frames_left[]  = { sprite_robo8, sprite_robo9, sprite_robo10, sprite_robo9 };
+const char * robo_frames_bored[] = { sprite_robo_still_eyesleft, sprite_robo_still_eyesright,
+                                     sprite_robo_still_eyesleft, sprite_robo_still_eyesright,
+                                     sprite_robo_still_foottap,  sprite_robo_still_eyesleft, sprite_robo_still_foottap,  sprite_robo_still_eyesleft,
+                                     sprite_robo_still_naillook, sprite_robo_still_naillook, sprite_robo_still_naillook, sprite_robo_still_eyesright };
 
 // Global defs
 sprite_object shiny;
 sprite_object rusty;
+
+direction get_robo_direction(int x) {
+    return (x < 0) ? DIR_LEFT : (x > 0) ? DIR_RIGHT : DIR_IDLE;
+}
 
 // Animate and update on screen
 void update_sprite(sprite_object *spr) {
@@ -64,6 +44,24 @@ void update_sprite(sprite_object *spr) {
 // Read joysticks and alter x accordingly
 void update_sprite_joystick_input(sprite_object* s, int joystick_id) {
     joy_poll(joystick_id);
+    direction dir = get_robo_direction(joyx[joystick_id]);
+
+    // There is a bug here switching from a high frame number being bored
+    // To a movement, I need to put something here to reset the frame number when the
+    // case changes
+
+    switch (dir) {
+        case DIR_LEFT:  s->frames = robo_frames_left;
+                        s->num_frames =  4;
+                        s->frame_delay = 4;            break;
+        case DIR_RIGHT: s->frames = robo_frames_right;
+                        s->num_frames =  4;
+                        s->frame_delay = 4;            break;
+        default:        s->frames = robo_frames_bored;
+                        s->num_frames  = 12;
+                        s->frame_delay = 12;           break;
+    }
+
     s->x += joyx[joystick_id];
 }
 	
