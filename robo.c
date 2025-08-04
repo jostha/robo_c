@@ -50,6 +50,11 @@ void update_sprite_joystick_input(sprite_object* s, int joystick_id) {
     // To a movement, I need to put something here to reset the frame number when the
     // case changes
 
+    if (dir != s->last_dir) {
+        s->current_frame = 0;
+        s->last_dir = dir;
+    }
+
     switch (dir) {
         case DIR_LEFT:  s->frames = robo_frames_left;
                         s->num_frames =  4;

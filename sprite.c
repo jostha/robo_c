@@ -10,6 +10,7 @@ sprite_object init_sprite(const unsigned char * const *frames, int num_frames,
     s.current_frame = current_frame;
     s.delay_counter = 0;
     s.frame_delay = 4; // Optional: expose this as a parameter
+    s.last_dir = DIR_IDLE;
     s.sprite_mem = sprite_mem;
     s.sprite_number = sprite_number;
     s.x = x;

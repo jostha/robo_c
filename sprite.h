@@ -11,6 +11,7 @@ typedef struct {
     int current_frame;
     int delay_counter;
     int frame_delay;
+    direction last_dir;
     unsigned char *sprite_mem;
     char sprite_number;
     int x;
